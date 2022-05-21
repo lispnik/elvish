@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: theelves/up
-      options: --user 0
+      options: --user 1001
     defaults:
       run:
         shell: sh
