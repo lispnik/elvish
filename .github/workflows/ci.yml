@@ -175,7 +175,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Check relative links
-      run: make -C website check-rellinks
+      run: |
+        git --version
+        make -C website check-rellinks
 
   lint:
     name: Run linters
