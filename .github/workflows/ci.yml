@@ -171,6 +171,7 @@ jobs:
         shell: sh
     env:
       CGO_ENABLED: 0
+      GOFLAGS: -v
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
