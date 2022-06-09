@@ -57,10 +57,11 @@ func init() {
 		"or":       compileOr,
 		"coalesce": compileCoalesce,
 
-		"if":    compileIf,
-		"while": compileWhile,
-		"for":   compileFor,
-		"try":   compileTry,
+		"if":     compileIf,
+		"unless": compileUnless,
+		"while":  compileWhile,
+		"for":    compileFor,
+		"try":    compileTry,
 
 		"pragma": compilePragma,
 	}
@@ -530,6 +531,44 @@ func (op *ifOp) exec(fm *Frame) Exception {
 	}
 	if op.elseOp != nil {
 		return fm.errorp(op, elseFn.Call(fm.Fork("if else"), NoArgs, NoOpts))
+	}
+	return nil
+}
+
+func compileUnless(cp *compiler, fn *parse.Form) effectOp {
+	args := cp.walkArgs(fn)
+	condNode := args.next()
+	bodyNode := args.nextMustThunk("unless body")
+	elseNode := args.nextMustThunkIfAfter("else")
+	args.mustEnd()
+
+	condOp := cp.compoundOp(condNode)
+	bodyOp := cp.primaryOp(bodyNode)
+
+	var elseOp valuesOp
+	if elseNode != nil {
+		elseOp = cp.primaryOp(elseNode)
+	}
+
+	return &unlessOp{fn.Range(), condOp, bodyOp, elseOp}
+}
+
+type unlessOp struct {
+	diag.Ranging
+	condOp, bodyOp, elseOp valuesOp
+}
+
+func (op *unlessOp) exec(fm *Frame) Exception {
+	body := execLambdaOp(fm, op.bodyOp)
+
+	condValues, exc := op.condOp.exec(fm.Fork("unless cond"))
+	if exc != nil {
+		return exc
+	}
+	if !allTrue(condValues) {
+		return fm.errorp(op, body.Call(fm.Fork("unless"), NoArgs, NoOpts))
+	} else if elseBody := execLambdaOp(fm, op.elseOp); elseBody != nil {
+		return fm.errorp(op, elseBody.Call(fm.Fork("unless else"), NoArgs, NoOpts))
 	}
 	return nil
 }
